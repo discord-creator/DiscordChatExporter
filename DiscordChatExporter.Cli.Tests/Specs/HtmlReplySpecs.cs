@@ -10,7 +10,7 @@ namespace DiscordChatExporter.Cli.Tests.Specs;
 public class HtmlReplySpecs
 {
     [Fact]
-    public async Task Message_with_a_reply_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_that_replies_to_another_message()
     {
         // Act
         var message = await ExportWrapper.GetMessageAsHtmlAsync(
@@ -24,7 +24,7 @@ public class HtmlReplySpecs
     }
 
     [Fact]
-    public async Task Message_with_a_reply_to_a_deleted_message_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_that_replies_to_a_deleted_message()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/645
 
@@ -36,13 +36,15 @@ public class HtmlReplySpecs
 
         // Assert
         message.Text().Should().Contain("reply to deleted");
-        message.QuerySelector(".chatlog__reply-link")?.Text().Should().Contain(
-            "Original message was deleted or could not be loaded."
-        );
+        message
+            .QuerySelector(".chatlog__reply-link")
+            ?.Text()
+            .Should()
+            .Contain("Original message was deleted or could not be loaded.");
     }
 
     [Fact]
-    public async Task Message_with_a_reply_to_an_empty_message_with_attachment_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_that_replies_to_an_empty_message_with_an_attachment()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/634
 
@@ -54,11 +56,15 @@ public class HtmlReplySpecs
 
         // Assert
         message.Text().Should().Contain("reply to attachment");
-        message.QuerySelector(".chatlog__reply-link")?.Text().Should().Contain("Click to see attachment");
+        message
+            .QuerySelector(".chatlog__reply-link")
+            ?.Text()
+            .Should()
+            .Contain("Click to see attachment");
     }
 
     [Fact]
-    public async Task Message_with_a_reply_to_an_interaction_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_that_replies_to_an_interaction()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/569
 
@@ -70,5 +76,25 @@ public class HtmlReplySpecs
 
         // Assert
         message.Text().Should().Contain("used /poll");
+    }
+
+    [Fact]
+    public async Task I_can_export_a_channel_that_contains_a_message_cross_posted_from_another_guild()
+    {
+        // https://github.com/Tyrrrz/DiscordChatExporter/issues/633
+
+        // Act
+        var message = await ExportWrapper.GetMessageAsHtmlAsync(
+            ChannelIds.ReplyTestCases,
+            Snowflake.Parse("1072165330853576876")
+        );
+
+        // Assert
+        message
+            .Text()
+            .Should()
+            .Contain("This is a test message from an announcement channel on another server");
+        message.Text().Should().Contain("SERVER");
+        message.QuerySelector(".chatlog__reply-link").Should().BeNull();
     }
 }

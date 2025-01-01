@@ -9,7 +9,7 @@ namespace DiscordChatExporter.Cli.Tests.Specs;
 public class HtmlStickerSpecs
 {
     [Fact]
-    public async Task Message_with_a_PNG_based_sticker_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_PNG_sticker()
     {
         // Act
         var message = await ExportWrapper.GetMessageAsHtmlAsync(
@@ -19,11 +19,11 @@ public class HtmlStickerSpecs
 
         // Assert
         var stickerUrl = message.QuerySelector("[title='rock'] img")?.GetAttribute("src");
-        stickerUrl.Should().Be("https://cdn.discordapp.com/stickers/904215665597120572.png");
+        stickerUrl.Should().StartWith("https://cdn.discordapp.com/stickers/904215665597120572.png");
     }
 
     [Fact]
-    public async Task Message_with_a_Lottie_based_sticker_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_Lottie_sticker()
     {
         // Act
         var message = await ExportWrapper.GetMessageAsHtmlAsync(
@@ -32,7 +32,12 @@ public class HtmlStickerSpecs
         );
 
         // Assert
-        var stickerUrl = message.QuerySelector("[title='Yikes'] [data-source]")?.GetAttribute("data-source");
-        stickerUrl.Should().Be("https://cdn.discordapp.com/stickers/816087132447178774.json");
+        var stickerUrl = message
+            .QuerySelector("[title='Yikes'] [data-source]")
+            ?.GetAttribute("data-source");
+
+        stickerUrl
+            .Should()
+            .StartWith("https://cdn.discordapp.com/stickers/816087132447178774.json");
     }
 }

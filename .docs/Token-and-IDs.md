@@ -14,6 +14,23 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 
 #### In Chrome
 
+##### Using the console
+
+1. <img width="500" align="right" src="https://i.imgur.com/zdDwIT5.jpg" />Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (<kbd>⌥</kbd>+<kbd>⌘</kbd>+<kbd>I</kbd> on macOS). Chrome's [DevTools](https://developer.chrome.com/docs/devtools/overview) tools will display.
+
+<br clear="right" />
+<br />
+
+2. Click the `Console` tab. The [console](https://developer.chrome.com/docs/devtools/console/) will open.
+
+3. Type
+
+    ```js
+    (webpackChunkdiscord_app.push([[''],{},e=>{m=[];for(let c in e.c)m.push(e.c[c])}]),m).find(m=>m?.exports?.default?.getToken!==void 0).exports.default.getToken()
+    ```
+
+    into the console and press <kbd>Enter</kbd>. The console will display your user token.
+
 ##### Using the network monitor
 
 1. <img width="500" align="right" src="https://i.imgur.com/zdDwIT5.jpg" />Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (<kbd>⌥</kbd>+<kbd>⌘</kbd>+<kbd>I</kbd> on macOS). Chrome's [DevTools](https://developer.chrome.com/docs/devtools/overview) tools will display.
@@ -31,12 +48,12 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 <br clear="right" />
 <br />
 
-4. <img width="500" align="right" src="https://i.imgur.com/rnZG8Id.png" />Click the text box labelled `Filter` and type `library`. The entries will filter down to a single entry named `library`.
+4. <img width="500" align="right" src="https://i.imgur.com/rnZG8Id.png" />Click the text box labelled `Filter` and type `messages`. The entries will filter down to a single request named `messages`. If the request doesn't appear, switch to any other Discord channel to trigger it.
 
 <br clear="right" />
 <br />
 
-5. <img width="500" align="right" src="https://i.imgur.com/29dE3fR.png" />Click the entry named `library`. A panel will open to the right and display details about the entry. Click the `Headers` tab if it isn't already active.
+5. <img width="500" align="right" src="https://i.imgur.com/29dE3fR.png" />Click the entry named `messages`. A panel will open to the right and display details about the entry. Click the `Headers` tab if it isn't already active.
 
 <br clear="right" />
 <br />
@@ -90,6 +107,23 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 
 #### In Firefox
 
+##### Using the console
+
+1. <img width="500" align="right" src="https://i.imgur.com/O34nwdG.png" />Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd> (<kbd>⌥</kbd>+<kbd>⌘</kbd>+<kbd>K</kbd> on macOS). Firefox’s [web developer tools](https://firefox-source-docs.mozilla.org/devtools-user/) will display at the bottom of the window, and the [web console](https://firefox-source-docs.mozilla.org/devtools-user/console/index.html) will display.
+
+<br clear="right" />
+<br />
+
+2. Click the `Console` tab. The [console](https://firefox-source-docs.mozilla.org/devtools-user/console/index.html) will open.
+
+1. Type
+
+    ```js
+    (webpackChunkdiscord_app.push([[''],{},e=>{m=[];for(let c in e.c)m.push(e.c[c])}]),m).find(m=>m?.exports?.default?.getToken!==void 0).exports.default.getToken()
+    ```
+
+    into the console and press <kbd>Enter</kbd>. The console will display your user token.
+
 ##### Using the network monitor
 
 1. <img width="500" align="right" src="https://i.imgur.com/O34nwdG.png" />Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (<kbd>⌥</kbd>+<kbd>⌘</kbd>+<kbd>E</kbd> on macOS). Firefox’s [web developer tools](https://firefox-source-docs.mozilla.org/devtools-user/) will display at the bottom of the window, and the [network monitor](https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/) will display.
@@ -102,12 +136,12 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 <br clear="right" />
 <br />
 
-3. <img width="500" align="right" src="https://i.imgur.com/efUCfBO.png" />Type `library` into the filter. The network request list will filter out any entries not containing the string `library`.
+3. <img width="500" align="right" src="https://i.imgur.com/efUCfBO.png" />Type `messages` into the filter. The network request list will filter out any entries not containing the string `messages`. If the request doesn't appear, switch to any other Discord channel to trigger it.
 
 <br clear="right" />
 <br />
 
-4. <img width="500" align="right" src="https://i.imgur.com/cdJZ7Q1.png" />Click `library`. The [network request details pane](https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/request_details/index.html) will display. The [headers tab](https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/request_details/index.html#network-monitor-request-details-headers-tab) should be active by default. If it isn’t, click it.
+4. <img width="500" align="right" src="https://i.imgur.com/cdJZ7Q1.png" />Click `messages`. The [network request details pane](https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/request_details/index.html) will display. The [headers tab](https://firefox-source-docs.mozilla.org/devtools-user/network_monitor/request_details/index.html#network-monitor-request-details-headers-tab) should be active by default. If it isn’t, click it.
 
 <br clear="right" />
 <br />
@@ -164,7 +198,7 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 <br clear="right" />
 <br />
 
-### Through the desktop app / Enabling web developer tools
+### Through the desktop app / enabling web developer tools
 
 #### By editing the settings file
 
@@ -198,7 +232,7 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 
 4. Launch Discord.
 
-5. To find your user token, continue [here](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md#in-chrome).
+5. To find your user token, continue [here](#in-chrome).
 
 #### Via settings menu (BetterDiscord only)
 
@@ -218,7 +252,7 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 <br />
 
 4. Press <kbd>Esc</kbd>. The settings page will close.
-5. To find your user token, continue [here](https://github.com/Tyrrrz/DiscordChatExporter/blob/master/.docs/Token-and-IDs.md#in-chrome).
+5. To find your user token, continue [here](#in-chrome).
 
 ## How to get a Bot Token
 
@@ -234,29 +268,9 @@ Prerequisite step: Navigate to [discord.com](https://discord.com) and login.
 
 ---
 
-## How to get a Server ID or a Server Channel ID
+## How to get a Server ID or a Channel ID
 
 1. Open Discord Settings
 2. Go to the **Advanced** section
 3. Enable **Developer Mode**
-4. Right-click on the desired server or channel and click Copy ID
-
-## How to get a Direct Message Channel ID
-
-1. Click the three dots next to any message in the channel you want to export.
-2. Paste the link into a text editor.
-3. Copy the text in the highlighted part of the link.
-
-> E.g. in https꞉//discord.com/channels/@me/**189716987098470**/0985709387059874, you should copy **189716987098470**
-
-Make sure you're not copying the user's ID.
-
-**Alternatively, you can also:**
-
-1. Open the desired direct message channel
-2. Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (<kbd>⌥</kbd>+<kbd>⌘</kbd>+<kbd>I</kbd> on macOS) on Discord to show developer tools
-3. Navigate to the `Console` tab
-4. Type `window.location.href` and press Enter
-5. Copy the first long sequence of numbers inside the URL
-
-> E.g. in https꞉//discord.com/channels/@me/**84289740160**, you should copy **84289740160**
+4. Right-click on the desired server or channel and click **Copy Server ID** or **Copy Channel ID**

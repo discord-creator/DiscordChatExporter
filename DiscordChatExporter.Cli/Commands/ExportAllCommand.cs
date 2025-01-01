@@ -1,36 +1,43 @@
+using System;
 using System.Collections.Generic;
-using System.IO.Compression;
-using System.Text.Json;
+using System.Linq;
 using System.Threading.Tasks;
 using CliFx.Attributes;
-using CliFx.Exceptions;
 using CliFx.Infrastructure;
 using DiscordChatExporter.Cli.Commands.Base;
-using DiscordChatExporter.Core.Discord;
+using DiscordChatExporter.Cli.Commands.Converters;
+using DiscordChatExporter.Cli.Commands.Shared;
+using DiscordChatExporter.Cli.Utils.Extensions;
 using DiscordChatExporter.Core.Discord.Data;
+using DiscordChatExporter.Core.Discord.Dump;
 using DiscordChatExporter.Core.Exceptions;
-using JsonExtensions.Reading;
+using Spectre.Console;
 
 namespace DiscordChatExporter.Cli.Commands;
 
-[Command("exportall", Description = "Export all accessible channels.")]
+[Command("exportall", Description = "Exports all accessible channels.")]
 public class ExportAllCommand : ExportCommandBase
 {
-    [CommandOption(
-        "include-dm",
-        Description = "Include direct message channels."
-    )]
+    [CommandOption("include-dm", Description = "Include direct message channels.")]
     public bool IncludeDirectChannels { get; init; } = true;
 
-    [CommandOption(
-        "include-guilds",
-        Description = "Include guild channels."
-    )]
+    [CommandOption("include-guilds", Description = "Include server channels.")]
     public bool IncludeGuildChannels { get; init; } = true;
+
+    [CommandOption("include-vc", Description = "Include voice channels.")]
+    public bool IncludeVoiceChannels { get; init; } = true;
+
+    [CommandOption(
+        "include-threads",
+        Description = "Which types of threads should be included.",
+        Converter = typeof(ThreadInclusionModeBindingConverter)
+    )]
+    public ThreadInclusionMode ThreadInclusionMode { get; init; } = ThreadInclusionMode.None;
 
     [CommandOption(
         "data-package",
-        Description = "Path to the personal data package (ZIP file) requested from Discord. If provided, only channels referenced in the dump will be exported."
+        Description = "Path to the personal data package (ZIP file) requested from Discord. "
+            + "If provided, only channels referenced in the dump will be exported."
     )]
     public string? DataPackageFilePath { get; init; }
 
@@ -44,13 +51,84 @@ public class ExportAllCommand : ExportCommandBase
         // Pull from the API
         if (string.IsNullOrWhiteSpace(DataPackageFilePath))
         {
-            await console.Output.WriteLineAsync("Fetching channels...");
-
             await foreach (var guild in Discord.GetUserGuildsAsync(cancellationToken))
             {
-                await foreach (var channel in Discord.GetGuildChannelsAsync(guild.Id, cancellationToken))
+                // Regular channels
+                await console.Output.WriteLineAsync(
+                    $"Fetching channels for server '{guild.Name}'..."
+                );
+
+                var fetchedChannelsCount = 0;
+                await console
+                    .CreateStatusTicker()
+                    .StartAsync(
+                        "...",
+                        async ctx =>
+                        {
+                            await foreach (
+                                var channel in Discord.GetGuildChannelsAsync(
+                                    guild.Id,
+                                    cancellationToken
+                                )
+                            )
+                            {
+                                if (channel.IsCategory)
+                                    continue;
+
+                                if (!IncludeVoiceChannels && channel.IsVoice)
+                                    continue;
+
+                                channels.Add(channel);
+
+                                ctx.Status(
+                                    Markup.Escape($"Fetched '{channel.GetHierarchicalName()}'.")
+                                );
+
+                                fetchedChannelsCount++;
+                            }
+                        }
+                    );
+
+                await console.Output.WriteLineAsync($"Fetched {fetchedChannelsCount} channel(s).");
+
+                // Threads
+                if (ThreadInclusionMode != ThreadInclusionMode.None)
                 {
-                    channels.Add(channel);
+                    await console.Output.WriteLineAsync(
+                        $"Fetching threads for server '{guild.Name}'..."
+                    );
+
+                    var fetchedThreadsCount = 0;
+                    await console
+                        .CreateStatusTicker()
+                        .StartAsync(
+                            "...",
+                            async ctx =>
+                            {
+                                await foreach (
+                                    var thread in Discord.GetGuildThreadsAsync(
+                                        guild.Id,
+                                        ThreadInclusionMode == ThreadInclusionMode.All,
+                                        Before,
+                                        After,
+                                        cancellationToken
+                                    )
+                                )
+                                {
+                                    channels.Add(thread);
+
+                                    ctx.Status(
+                                        Markup.Escape($"Fetched '{thread.GetHierarchicalName()}'.")
+                                    );
+
+                                    fetchedThreadsCount++;
+                                }
+                            }
+                        );
+
+                    await console.Output.WriteLineAsync(
+                        $"Fetched {fetchedThreadsCount} thread(s)."
+                    );
                 }
             }
         }
@@ -58,44 +136,74 @@ public class ExportAllCommand : ExportCommandBase
         else
         {
             await console.Output.WriteLineAsync("Extracting channels...");
-            using var archive = ZipFile.OpenRead(DataPackageFilePath);
 
-            var entry = archive.GetEntry("messages/index.json");
-            if (entry is null)
-                throw new CommandException("Cannot find channel index inside the data package.");
+            var dump = await DataDump.LoadAsync(DataPackageFilePath, cancellationToken);
+            var inaccessibleChannels = new List<DataDumpChannel>();
 
-            await using var stream = entry.Open();
-            using var document = await JsonDocument.ParseAsync(stream, default, cancellationToken);
+            await console
+                .CreateStatusTicker()
+                .StartAsync(
+                    "...",
+                    async ctx =>
+                    {
+                        foreach (var dumpChannel in dump.Channels)
+                        {
+                            ctx.Status(
+                                Markup.Escape(
+                                    $"Fetching '{dumpChannel.Name}' ({dumpChannel.Id})..."
+                                )
+                            );
 
-            foreach (var property in document.RootElement.EnumerateObjectOrEmpty())
+                            try
+                            {
+                                var channel = await Discord.GetChannelAsync(
+                                    dumpChannel.Id,
+                                    cancellationToken
+                                );
+
+                                channels.Add(channel);
+                            }
+                            catch (DiscordChatExporterException)
+                            {
+                                inaccessibleChannels.Add(dumpChannel);
+                            }
+                        }
+                    }
+                );
+
+            await console.Output.WriteLineAsync($"Fetched {channels} channel(s).");
+
+            // Print inaccessible channels
+            if (inaccessibleChannels.Any())
             {
-                var channelId = Snowflake.Parse(property.Name);
-                var channelName = property.Value.GetString();
+                await console.Output.WriteLineAsync();
 
-                // Null items refer to deleted channels
-                if (channelName is null)
-                    continue;
-
-                await console.Output.WriteLineAsync($"Fetching channel '{channelName}' ({channelId})...");
-
-                try
+                using (console.WithForegroundColor(ConsoleColor.Red))
                 {
-                    var channel = await Discord.GetChannelAsync(channelId, cancellationToken);
-                    channels.Add(channel);
+                    await console.Error.WriteLineAsync(
+                        "Failed to access the following channel(s):"
+                    );
                 }
-                catch (DiscordChatExporterException)
-                {
-                    await console.Output.WriteLineAsync($"Channel '{channelName}' ({channelId}) is inaccessible.");
-                }
+
+                foreach (var dumpChannel in inaccessibleChannels)
+                    await console.Error.WriteLineAsync($"{dumpChannel.Name} ({dumpChannel.Id})");
+
+                await console.Error.WriteLineAsync();
             }
         }
 
         // Filter out unwanted channels
         if (!IncludeDirectChannels)
-            channels.RemoveAll(c => c.Kind.IsDirect());
+            channels.RemoveAll(c => c.IsDirect);
         if (!IncludeGuildChannels)
-            channels.RemoveAll(c => c.Kind.IsGuild());
+            channels.RemoveAll(c => c.IsGuild);
+        if (!IncludeVoiceChannels)
+            channels.RemoveAll(c => c.IsVoice);
+        if (ThreadInclusionMode == ThreadInclusionMode.None)
+            channels.RemoveAll(c => c.IsThread);
+        if (ThreadInclusionMode != ThreadInclusionMode.All)
+            channels.RemoveAll(c => c is { IsThread: true, IsArchived: true });
 
-        await base.ExecuteAsync(console, channels);
+        await ExportAsync(console, channels);
     }
 }

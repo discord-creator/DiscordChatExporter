@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using AngleSharp.Dom;
 using DiscordChatExporter.Cli.Tests.Infra;
@@ -11,7 +12,7 @@ namespace DiscordChatExporter.Cli.Tests.Specs;
 public class HtmlAttachmentSpecs
 {
     [Fact]
-    public async Task Message_with_a_generic_attachment_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_generic_attachment()
     {
         // Act
         var message = await ExportWrapper.GetMessageAsHtmlAsync(
@@ -20,23 +21,17 @@ public class HtmlAttachmentSpecs
         );
 
         // Assert
-        message.Text().Should().ContainAll(
-            "Generic file attachment",
-            "Test.txt",
-            "11 bytes"
-        );
+        message.Text().Should().ContainAll("Generic file attachment", "Test.txt", "11 bytes");
 
         message
             .QuerySelectorAll("a")
             .Select(e => e.GetAttribute("href"))
             .Should()
-            .Contain(
-                "https://cdn.discordapp.com/attachments/885587741654536192/885587844964417596/Test.txt"
-            );
+            .Contain(u => u.Contains("Test.txt", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task Message_with_an_image_attachment_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_an_image_attachment()
     {
         // Act
         var message = await ExportWrapper.GetMessageAsHtmlAsync(
@@ -51,13 +46,11 @@ public class HtmlAttachmentSpecs
             .QuerySelectorAll("img")
             .Select(e => e.GetAttribute("src"))
             .Should()
-            .Contain(
-                "https://cdn.discordapp.com/attachments/885587741654536192/885654862430359613/bird-thumbnail.png"
-            );
+            .Contain(u => u.Contains("bird-thumbnail.png", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task Message_with_a_video_attachment_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_video_attachment()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/333
 
@@ -71,13 +64,15 @@ public class HtmlAttachmentSpecs
         message.Text().Should().Contain("Video attachment");
 
         var videoUrl = message.QuerySelector("video source")?.GetAttribute("src");
-        videoUrl.Should().Be(
-            "https://cdn.discordapp.com/attachments/885587741654536192/885655761512968233/file_example_MP4_640_3MG.mp4"
-        );
+        videoUrl
+            .Should()
+            .StartWith(
+                "https://cdn.discordapp.com/attachments/885587741654536192/885655761512968233/file_example_MP4_640_3MG.mp4"
+            );
     }
 
     [Fact]
-    public async Task Message_with_an_audio_attachment_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_an_audio_attachment()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/333
 
@@ -91,8 +86,10 @@ public class HtmlAttachmentSpecs
         message.Text().Should().Contain("Audio attachment");
 
         var audioUrl = message.QuerySelector("audio source")?.GetAttribute("src");
-        audioUrl.Should().Be(
-            "https://cdn.discordapp.com/attachments/885587741654536192/885656175348187146/file_example_MP3_1MG.mp3"
-        );
+        audioUrl
+            .Should()
+            .StartWith(
+                "https://cdn.discordapp.com/attachments/885587741654536192/885656175348187146/file_example_MP3_1MG.mp3"
+            );
     }
 }

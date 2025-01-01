@@ -1,14 +1,10 @@
-using JsonExtensions.Reading;
 using System.Text.Json;
+using JsonExtensions.Reading;
 
 namespace DiscordChatExporter.Core.Discord.Data.Embeds;
 
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-video-structure
-public record EmbedVideo(
-    string? Url,
-    string? ProxyUrl,
-    int? Width,
-    int? Height)
+public record EmbedVideo(string? Url, string? ProxyUrl, int? Width, int? Height)
 {
     public static EmbedVideo Parse(JsonElement json)
     {

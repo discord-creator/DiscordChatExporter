@@ -3547,7 +3547,7 @@ internal static class EmojiIndex
         ["🇸🇯"] = "flag_sj",
         ["🇹🇦"] = "flag_ta",
         ["🇺🇲"] = "flag_um",
-        ["🇺🇳"] = "united_nations"
+        ["🇺🇳"] = "united_nations",
     };
 
     private static Dictionary<string, string> _fromCodes = new(5000, StringComparer.Ordinal)
@@ -6258,7 +6258,8 @@ internal static class EmojiIndex
         ["woman_and_man_holding_hands_tone2_tone3"] = "👩🏼‍🤝‍👨🏽",
         ["woman_and_man_holding_hands_medium_light_skin_tone_medium_skin_tone"] = "👩🏼‍🤝‍👨🏽",
         ["woman_and_man_holding_hands_tone2_tone4"] = "👩🏼‍🤝‍👨🏾",
-        ["woman_and_man_holding_hands_medium_light_skin_tone_medium_dark_skin_tone"] = "👩🏼‍🤝‍👨🏾",
+        ["woman_and_man_holding_hands_medium_light_skin_tone_medium_dark_skin_tone"] =
+            "👩🏼‍🤝‍👨🏾",
         ["woman_and_man_holding_hands_tone2_tone5"] = "👩🏼‍🤝‍👨🏿",
         ["woman_and_man_holding_hands_medium_light_skin_tone_dark_skin_tone"] = "👩🏼‍🤝‍👨🏿",
         ["woman_and_man_holding_hands_tone3_tone1"] = "👩🏽‍🤝‍👨🏻",
@@ -6274,7 +6275,8 @@ internal static class EmojiIndex
         ["woman_and_man_holding_hands_tone4_tone1"] = "👩🏾‍🤝‍👨🏻",
         ["woman_and_man_holding_hands_medium_dark_skin_tone_light_skin_tone"] = "👩🏾‍🤝‍👨🏻",
         ["woman_and_man_holding_hands_tone4_tone2"] = "👩🏾‍🤝‍👨🏼",
-        ["woman_and_man_holding_hands_medium_dark_skin_tone_medium_light_skin_tone"] = "👩🏾‍🤝‍👨🏼",
+        ["woman_and_man_holding_hands_medium_dark_skin_tone_medium_light_skin_tone"] =
+            "👩🏾‍🤝‍👨🏼",
         ["woman_and_man_holding_hands_tone4_tone3"] = "👩🏾‍🤝‍👨🏽",
         ["woman_and_man_holding_hands_medium_dark_skin_tone_medium_skin_tone"] = "👩🏾‍🤝‍👨🏽",
         ["woman_and_man_holding_hands_tone4"] = "👫🏾",
@@ -6409,15 +6411,18 @@ internal static class EmojiIndex
         ["couple_with_heart_tone2"] = "💑🏼",
         ["couple_with_heart_medium_light_skin_tone"] = "💑🏼",
         ["couple_with_heart_person_person_tone2_tone3"] = "🧑🏼‍❤️‍🧑🏽",
-        ["couple_with_heart_person_person_medium_light_skin_tone_medium_skin_tone"] = "🧑🏼‍❤️‍🧑🏽",
+        ["couple_with_heart_person_person_medium_light_skin_tone_medium_skin_tone"] =
+            "🧑🏼‍❤️‍🧑🏽",
         ["couple_with_heart_person_person_tone2_tone4"] = "🧑🏼‍❤️‍🧑🏾",
-        ["couple_with_heart_person_person_medium_light_skin_tone_medium_dark_skin_tone"] = "🧑🏼‍❤️‍🧑🏾",
+        ["couple_with_heart_person_person_medium_light_skin_tone_medium_dark_skin_tone"] =
+            "🧑🏼‍❤️‍🧑🏾",
         ["couple_with_heart_person_person_tone2_tone5"] = "🧑🏼‍❤️‍🧑🏿",
         ["couple_with_heart_person_person_medium_light_skin_tone_dark_skin_tone"] = "🧑🏼‍❤️‍🧑🏿",
         ["couple_with_heart_person_person_tone3_tone1"] = "🧑🏽‍❤️‍🧑🏻",
         ["couple_with_heart_person_person_medium_skin_tone_light_skin_tone"] = "🧑🏽‍❤️‍🧑🏻",
         ["couple_with_heart_person_person_tone3_tone2"] = "🧑🏽‍❤️‍🧑🏼",
-        ["couple_with_heart_person_person_medium_skin_tone_medium_light_skin_tone"] = "🧑🏽‍❤️‍🧑🏼",
+        ["couple_with_heart_person_person_medium_skin_tone_medium_light_skin_tone"] =
+            "🧑🏽‍❤️‍🧑🏼",
         ["couple_with_heart_tone3"] = "💑🏽",
         ["couple_with_heart_medium_skin_tone"] = "💑🏽",
         ["couple_with_heart_person_person_tone3_tone4"] = "🧑🏽‍❤️‍🧑🏾",
@@ -6427,7 +6432,8 @@ internal static class EmojiIndex
         ["couple_with_heart_person_person_tone4_tone1"] = "🧑🏾‍❤️‍🧑🏻",
         ["couple_with_heart_person_person_medium_dark_skin_tone_light_skin_tone"] = "🧑🏾‍❤️‍🧑🏻",
         ["couple_with_heart_person_person_tone4_tone2"] = "🧑🏾‍❤️‍🧑🏼",
-        ["couple_with_heart_person_person_medium_dark_skin_tone_medium_light_skin_tone"] = "🧑🏾‍❤️‍🧑🏼",
+        ["couple_with_heart_person_person_medium_dark_skin_tone_medium_light_skin_tone"] =
+            "🧑🏾‍❤️‍🧑🏼",
         ["couple_with_heart_person_person_tone4_tone3"] = "🧑🏾‍❤️‍🧑🏽",
         ["couple_with_heart_person_person_medium_dark_skin_tone_medium_skin_tone"] = "🧑🏾‍❤️‍🧑🏽",
         ["couple_with_heart_tone4"] = "💑🏾",
@@ -6462,7 +6468,8 @@ internal static class EmojiIndex
         ["couple_with_heart_woman_man_tone2_tone3"] = "👩🏼‍❤️‍👨🏽",
         ["couple_with_heart_woman_man_medium_light_skin_tone_medium_skin_tone"] = "👩🏼‍❤️‍👨🏽",
         ["couple_with_heart_woman_man_tone2_tone4"] = "👩🏼‍❤️‍👨🏾",
-        ["couple_with_heart_woman_man_medium_light_skin_tone_medium_dark_skin_tone"] = "👩🏼‍❤️‍👨🏾",
+        ["couple_with_heart_woman_man_medium_light_skin_tone_medium_dark_skin_tone"] =
+            "👩🏼‍❤️‍👨🏾",
         ["couple_with_heart_woman_man_tone2_tone5"] = "👩🏼‍❤️‍👨🏿",
         ["couple_with_heart_woman_man_medium_light_skin_tone_dark_skin_tone"] = "👩🏼‍❤️‍👨🏿",
         ["couple_with_heart_woman_man_tone3_tone1"] = "👩🏽‍❤️‍👨🏻",
@@ -6478,7 +6485,8 @@ internal static class EmojiIndex
         ["couple_with_heart_woman_man_tone4_tone1"] = "👩🏾‍❤️‍👨🏻",
         ["couple_with_heart_woman_man_medium_dark_skin_tone_light_skin_tone"] = "👩🏾‍❤️‍👨🏻",
         ["couple_with_heart_woman_man_tone4_tone2"] = "👩🏾‍❤️‍👨🏼",
-        ["couple_with_heart_woman_man_medium_dark_skin_tone_medium_light_skin_tone"] = "👩🏾‍❤️‍👨🏼",
+        ["couple_with_heart_woman_man_medium_dark_skin_tone_medium_light_skin_tone"] =
+            "👩🏾‍❤️‍👨🏼",
         ["couple_with_heart_woman_man_tone4_tone3"] = "👩🏾‍❤️‍👨🏽",
         ["couple_with_heart_woman_man_medium_dark_skin_tone_medium_skin_tone"] = "👩🏾‍❤️‍👨🏽",
         ["couple_with_heart_woman_man_tone4"] = "👩🏾‍❤️‍👨🏾",
@@ -6514,7 +6522,8 @@ internal static class EmojiIndex
         ["couple_with_heart_woman_woman_tone2_tone3"] = "👩🏼‍❤️‍👩🏽",
         ["couple_with_heart_woman_woman_medium_light_skin_tone_medium_skin_tone"] = "👩🏼‍❤️‍👩🏽",
         ["couple_with_heart_woman_woman_tone2_tone4"] = "👩🏼‍❤️‍👩🏾",
-        ["couple_with_heart_woman_woman_medium_light_skin_tone_medium_dark_skin_tone"] = "👩🏼‍❤️‍👩🏾",
+        ["couple_with_heart_woman_woman_medium_light_skin_tone_medium_dark_skin_tone"] =
+            "👩🏼‍❤️‍👩🏾",
         ["couple_with_heart_woman_woman_tone2_tone5"] = "👩🏼‍❤️‍👩🏿",
         ["couple_with_heart_woman_woman_medium_light_skin_tone_dark_skin_tone"] = "👩🏼‍❤️‍👩🏿",
         ["couple_with_heart_woman_woman_tone3_tone1"] = "👩🏽‍❤️‍👩🏻",
@@ -6530,7 +6539,8 @@ internal static class EmojiIndex
         ["couple_with_heart_woman_woman_tone4_tone1"] = "👩🏾‍❤️‍👩🏻",
         ["couple_with_heart_woman_woman_medium_dark_skin_tone_light_skin_tone"] = "👩🏾‍❤️‍👩🏻",
         ["couple_with_heart_woman_woman_tone4_tone2"] = "👩🏾‍❤️‍👩🏼",
-        ["couple_with_heart_woman_woman_medium_dark_skin_tone_medium_light_skin_tone"] = "👩🏾‍❤️‍👩🏼",
+        ["couple_with_heart_woman_woman_medium_dark_skin_tone_medium_light_skin_tone"] =
+            "👩🏾‍❤️‍👩🏼",
         ["couple_with_heart_woman_woman_tone4_tone3"] = "👩🏾‍❤️‍👩🏽",
         ["couple_with_heart_woman_woman_medium_dark_skin_tone_medium_skin_tone"] = "👩🏾‍❤️‍👩🏽",
         ["couple_with_heart_woman_woman_tone4"] = "👩🏾‍❤️‍👩🏾",
@@ -8842,7 +8852,7 @@ internal static class EmojiIndex
         ["flag_sj"] = "🇸🇯",
         ["flag_ta"] = "🇹🇦",
         ["flag_um"] = "🇺🇲",
-        ["united_nations"] = "🇺🇳"
+        ["united_nations"] = "🇺🇳",
     };
 
     public static string? TryGetCode(string name) => _toCodes.GetValueOrDefault(name);

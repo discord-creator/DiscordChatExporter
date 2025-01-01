@@ -9,20 +9,13 @@ using WebMarkupMin.Core;
 
 namespace DiscordChatExporter.Core.Exporting;
 
-internal class HtmlMessageWriter : MessageWriter
+internal class HtmlMessageWriter(Stream stream, ExportContext context, string themeName)
+    : MessageWriter(stream, context)
 {
-    private readonly TextWriter _writer;
-    private readonly string _themeName;
+    private readonly TextWriter _writer = new StreamWriter(stream);
 
     private readonly HtmlMinifier _minifier = new();
-    private readonly List<Message> _messageGroup = new();
-
-    public HtmlMessageWriter(Stream stream, ExportContext context, string themeName)
-        : base(stream, context)
-    {
-        _writer = new StreamWriter(stream);
-        _themeName = themeName;
-    }
+    private readonly List<Message> _messageGroup = [];
 
     private bool CanJoinGroup(Message message)
     {
@@ -30,35 +23,41 @@ internal class HtmlMessageWriter : MessageWriter
         if (_messageGroup.LastOrDefault() is not { } lastMessage)
             return true;
 
-        // Reply messages cannot join existing groups because they need to appear first
-        if (message.Kind == MessageKind.Reply)
+        // Reply-like messages cannot join existing groups because they need to appear first
+        if (message.IsReplyLike)
             return false;
 
         // Grouping for system notifications
-        if (message.Kind.IsSystemNotification())
+        if (message.IsSystemNotification)
         {
             // Can only be grouped with other system notifications
-            if (!lastMessage.Kind.IsSystemNotification())
+            if (!lastMessage.IsSystemNotification)
                 return false;
         }
         // Grouping for normal messages
         else
         {
             // Can only be grouped with other normal messages
-            if (lastMessage.Kind.IsSystemNotification())
+            if (lastMessage.IsSystemNotification)
                 return false;
 
             // Messages must be within 7 minutes of each other
             if ((message.Timestamp - lastMessage.Timestamp).Duration().TotalMinutes > 7)
                 return false;
 
-            // Messages must be from the same author
+            // Messages must be sent by the same author
             if (message.Author.Id != lastMessage.Author.Id)
                 return false;
 
-            // If the user changed their name after the last message, their new messages
-            // cannot join an existing group.
-            if (!string.Equals(message.Author.FullName, lastMessage.Author.FullName, StringComparison.Ordinal))
+            // If the author changed their name after the last message, their new messages
+            // cannot join the existing group.
+            if (
+                !string.Equals(
+                    message.Author.FullName,
+                    lastMessage.Author.FullName,
+                    StringComparison.Ordinal
+                )
+            )
                 return false;
         }
 
@@ -69,29 +68,29 @@ internal class HtmlMessageWriter : MessageWriter
     private string Minify(string html) => _minifier.Minify(html, false).MinifiedContent;
 
     public override async ValueTask WritePreambleAsync(
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         await _writer.WriteLineAsync(
             Minify(
-                await new PreambleTemplate
-                {
-                    Context = Context,
-                    ThemeName = _themeName
-                }.RenderAsync(cancellationToken)
+                await new PreambleTemplate { Context = Context, ThemeName = themeName }.RenderAsync(
+                    cancellationToken
+                )
             )
         );
     }
 
     private async ValueTask WriteMessageGroupAsync(
         IReadOnlyList<Message> messages,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         await _writer.WriteLineAsync(
             Minify(
                 await new MessageGroupTemplate
                 {
                     Context = Context,
-                    Messages = messages
+                    Messages = messages,
                 }.RenderAsync(cancellationToken)
             )
         );
@@ -99,7 +98,8 @@ internal class HtmlMessageWriter : MessageWriter
 
     public override async ValueTask WriteMessageAsync(
         Message message,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         await base.WriteMessageAsync(message, cancellationToken);
 
@@ -118,7 +118,9 @@ internal class HtmlMessageWriter : MessageWriter
         }
     }
 
-    public override async ValueTask WritePostambleAsync(CancellationToken cancellationToken = default)
+    public override async ValueTask WritePostambleAsync(
+        CancellationToken cancellationToken = default
+    )
     {
         // Flush current message group
         if (_messageGroup.Any())
@@ -128,8 +130,8 @@ internal class HtmlMessageWriter : MessageWriter
             Minify(
                 await new PostambleTemplate
                 {
-                    ExportContext = Context,
-                    MessagesWritten = MessagesWritten
+                    Context = Context,
+                    MessagesWritten = MessagesWritten,
                 }.RenderAsync(cancellationToken)
             )
         );

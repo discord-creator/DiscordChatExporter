@@ -14,7 +14,7 @@ namespace DiscordChatExporter.Cli.Tests.Specs;
 public class SelfContainedSpecs
 {
     [Fact]
-    public async Task Messages_in_self_contained_export_only_reference_local_file_resources()
+    public async Task I_can_export_a_channel_and_download_all_referenced_assets()
     {
         // Arrange
         using var dir = TempDir.Create();
@@ -24,15 +24,14 @@ public class SelfContainedSpecs
         await new ExportChannelsCommand
         {
             Token = Secrets.DiscordToken,
-            ChannelIds = new[] { ChannelIds.SelfContainedTestCases },
+            ChannelIds = [ChannelIds.SelfContainedTestCases],
             ExportFormat = ExportFormat.HtmlDark,
             OutputPath = filePath,
-            ShouldDownloadAssets = true
+            ShouldDownloadAssets = true,
         }.ExecuteAsync(new FakeConsole());
 
         // Assert
-        Html
-            .Parse(await File.ReadAllTextAsync(filePath))
+        Html.Parse(await File.ReadAllTextAsync(filePath))
             .QuerySelectorAll("body [src]")
             .Select(e => e.GetAttribute("src")!)
             .Select(f => Path.GetFullPath(f, dir.Path))

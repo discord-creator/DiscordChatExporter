@@ -7,49 +7,40 @@ using DiscordChatExporter.Core.Utils.Extensions;
 
 namespace DiscordChatExporter.Core.Exporting;
 
-internal partial class PlainTextMarkdownVisitor : MarkdownVisitor
+internal partial class PlainTextMarkdownVisitor(ExportContext context, StringBuilder buffer)
+    : MarkdownVisitor
 {
-    private readonly ExportContext _context;
-    private readonly StringBuilder _buffer;
-
-    public PlainTextMarkdownVisitor(ExportContext context, StringBuilder buffer)
-    {
-        _context = context;
-        _buffer = buffer;
-    }
-
-    protected override async ValueTask<MarkdownNode> VisitTextAsync(
+    protected override ValueTask VisitTextAsync(
         TextNode text,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
-        _buffer.Append(text.Text);
-        return await base.VisitTextAsync(text, cancellationToken);
+        buffer.Append(text.Text);
+        return default;
     }
 
-    protected override async ValueTask<MarkdownNode> VisitEmojiAsync(
+    protected override ValueTask VisitEmojiAsync(
         EmojiNode emoji,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
-        _buffer.Append(
-            emoji.IsCustomEmoji
-                ? $":{emoji.Name}:"
-                : emoji.Name
-        );
+        buffer.Append(emoji.IsCustomEmoji ? $":{emoji.Name}:" : emoji.Name);
 
-        return await base.VisitEmojiAsync(emoji, cancellationToken);
+        return default;
     }
 
-    protected override async ValueTask<MarkdownNode> VisitMentionAsync(
+    protected override async ValueTask VisitMentionAsync(
         MentionNode mention,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         if (mention.Kind == MentionKind.Everyone)
         {
-            _buffer.Append("@everyone");
+            buffer.Append("@everyone");
         }
         else if (mention.Kind == MentionKind.Here)
         {
-            _buffer.Append("@here");
+            buffer.Append("@here");
         }
         else if (mention.Kind == MentionKind.User)
         {
@@ -57,48 +48,45 @@ internal partial class PlainTextMarkdownVisitor : MarkdownVisitor
             // which means they need to be populated on demand.
             // https://github.com/Tyrrrz/DiscordChatExporter/issues/304
             if (mention.TargetId is not null)
-                await _context.PopulateMemberAsync(mention.TargetId.Value, cancellationToken);
+                await context.PopulateMemberAsync(mention.TargetId.Value, cancellationToken);
 
-            var member = mention.TargetId?.Pipe(_context.TryGetMember);
-            var name = member?.User.Name ?? "Unknown";
+            var member = mention.TargetId?.Pipe(context.TryGetMember);
+            var displayName = member?.DisplayName ?? member?.User.DisplayName ?? "Unknown";
 
-            _buffer.Append($"@{name}");
+            buffer.Append($"@{displayName}");
         }
         else if (mention.Kind == MentionKind.Channel)
         {
-            var channel = mention.TargetId?.Pipe(_context.TryGetChannel);
+            var channel = mention.TargetId?.Pipe(context.TryGetChannel);
             var name = channel?.Name ?? "deleted-channel";
 
-            _buffer.Append($"#{name}");
+            buffer.Append($"#{name}");
 
             // Voice channel marker
             if (channel?.IsVoice == true)
-                _buffer.Append(" [voice]");
+                buffer.Append(" [voice]");
         }
         else if (mention.Kind == MentionKind.Role)
         {
-            var role = mention.TargetId?.Pipe(_context.TryGetRole);
+            var role = mention.TargetId?.Pipe(context.TryGetRole);
             var name = role?.Name ?? "deleted-role";
 
-            _buffer.Append($"@{name}");
+            buffer.Append($"@{name}");
         }
-
-        return await base.VisitMentionAsync(mention, cancellationToken);
     }
 
-    protected override async ValueTask<MarkdownNode> VisitTimestampAsync(
+    protected override ValueTask VisitTimestampAsync(
         TimestampNode timestamp,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
-        _buffer.Append(
+        buffer.Append(
             timestamp.Instant is not null
-                ? !string.IsNullOrWhiteSpace(timestamp.Format)
-                    ? timestamp.Instant.Value.ToLocalString(timestamp.Format)
-                    : _context.FormatDate(timestamp.Instant.Value)
+                ? context.FormatDate(timestamp.Instant.Value, timestamp.Format ?? "g")
                 : "Invalid date"
         );
 
-        return await base.VisitTimestampAsync(timestamp, cancellationToken);
+        return default;
     }
 }
 
@@ -107,7 +95,8 @@ internal partial class PlainTextMarkdownVisitor
     public static async ValueTask<string> FormatAsync(
         ExportContext context,
         string markdown,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         var nodes = MarkdownParser.ParseMinimal(markdown);
 

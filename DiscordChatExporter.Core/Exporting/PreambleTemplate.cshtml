@@ -21,8 +21,8 @@
     ValueTask<string> ResolveAssetUrlAsync(string url) =>
         Context.ResolveAssetUrlAsync(url, CancellationToken);
 
-    string FormatDate(DateTimeOffset instant) =>
-        Context.FormatDate(instant);
+    string FormatDate(DateTimeOffset instant, string format = "g") =>
+        Context.FormatDate(instant, format);
 
     async ValueTask<string> FormatMarkdownAsync(string markdown) =>
         Context.Request.ShouldFormatMarkdown
@@ -38,7 +38,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width">
 
-    @{/* Styling */}
+    @* Styling *@
     <style>
         @@font-face {
             src: url("@await ResolveAssetUrlAsync(GetFontUrl("normal", 400))");
@@ -702,6 +702,10 @@
         .chatlog__embed-spotify {
             border: 0;
         }
+        
+        .chatlog__embed-twitch {
+            border: 0;
+        }
 
         .chatlog__embed-youtube-container {
             margin-top: 0.6rem;
@@ -756,6 +760,36 @@
             max-width: 100%;
             line-height: 1.3;
             overflow-wrap: break-word;
+        }
+
+        .chatlog__markdown h1 {
+            margin: 1rem 0 0.5rem;
+            color: @Themed("#f2f3f5", "#060607");
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .chatlog__markdown h2 {
+            margin: 1rem 0 0.5rem;
+            color: @Themed("#f2f3f5", "#060607");
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+
+        .chatlog__markdown h3 {
+            margin: 1rem 0 0.5rem;
+            color: @Themed("#f2f3f5", "#060607");
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .chatlog__markdown h1:first-child, h2:first-child, h3:first-child {
+            margin-top: 0.5rem;
+        }
+
+        .chatlog__markdown ul, ol {
+            margin: 0 0 0 1rem;
+            padding: 0;
         }
 
         .chatlog__markdown-preserve {
@@ -865,7 +899,7 @@
         }
     </style>
 
-    @{/* Syntax highlighting */}
+    @* Syntax highlighting *@
     <link rel="stylesheet" href="@await ResolveAssetUrlAsync($"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/styles/solarized-{ThemeName.ToLowerInvariant()}.min.css")">
     <script src="@await ResolveAssetUrlAsync("https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.6/highlight.min.js")"></script>
     <script>
@@ -874,7 +908,7 @@
         });
     </script>
 
-    @{/* Lottie animation support */}
+    @* Lottie animation support *@
     <script src="@await ResolveAssetUrlAsync("https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.8.1/lottie.min.js")"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -895,7 +929,7 @@
         });
     </script>
 
-    @{/* Scripts */}
+    @* Scripts *@
     <script>
         function scrollToMessage(event, id) {
             const element = document.getElementById('chatlog__message-container-' + id);
@@ -932,7 +966,7 @@
         }
     </script>
 
-    @{/* Icons */}
+    @* Icons *@
     <svg style="display: none" xmlns="http://www.w3.org/2000/svg">
         <defs>
             <symbol id="attachment-icon" viewBox="0 0 720 960">
@@ -974,7 +1008,7 @@
     </div>
     <div class="preamble__entries-container">
         <div class="preamble__entry">@Context.Request.Guild.Name</div>
-        <div class="preamble__entry">@Context.Request.Channel.Category.Name / @Context.Request.Channel.Name</div>
+        <div class="preamble__entry">@Context.Request.Channel.GetHierarchicalName()</div>
 
         @if (!string.IsNullOrWhiteSpace(Context.Request.Channel.Topic))
         {
@@ -1001,7 +1035,7 @@
     </div>
 </div>
 
-@{/* Preamble cuts off at this point */}
+@* Preamble cuts off at this point *@
 <!--wmm:ignore-->
 <div class="chatlog">
 <!--/wmm:ignore-->

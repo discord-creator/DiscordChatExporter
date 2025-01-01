@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -8,29 +9,27 @@ using DiscordChatExporter.Core.Utils.Extensions;
 
 namespace DiscordChatExporter.Core.Exporting;
 
-internal partial class CsvMessageWriter : MessageWriter
+internal partial class CsvMessageWriter(Stream stream, ExportContext context)
+    : MessageWriter(stream, context)
 {
-    private readonly TextWriter _writer;
-
-    public CsvMessageWriter(Stream stream, ExportContext context)
-        : base(stream, context)
-    {
-        _writer = new StreamWriter(stream);
-    }
+    private readonly TextWriter _writer = new StreamWriter(stream);
 
     private async ValueTask<string> FormatMarkdownAsync(
         string markdown,
-        CancellationToken cancellationToken = default) =>
+        CancellationToken cancellationToken = default
+    ) =>
         Context.Request.ShouldFormatMarkdown
             ? await PlainTextMarkdownVisitor.FormatAsync(Context, markdown, cancellationToken)
             : markdown;
 
-    public override async ValueTask WritePreambleAsync(CancellationToken cancellationToken = default) =>
-        await _writer.WriteLineAsync("AuthorID,Author,Date,Content,Attachments,Reactions");
+    public override async ValueTask WritePreambleAsync(
+        CancellationToken cancellationToken = default
+    ) => await _writer.WriteLineAsync("AuthorID,Author,Date,Content,Attachments,Reactions");
 
     private async ValueTask WriteAttachmentsAsync(
         IReadOnlyList<Attachment> attachments,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         var buffer = new StringBuilder();
 
@@ -48,7 +47,8 @@ internal partial class CsvMessageWriter : MessageWriter
 
     private async ValueTask WriteReactionsAsync(
         IReadOnlyList<Reaction> reactions,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         var buffer = new StringBuilder();
 
@@ -70,7 +70,8 @@ internal partial class CsvMessageWriter : MessageWriter
 
     public override async ValueTask WriteMessageAsync(
         Message message,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         await base.WriteMessageAsync(message, cancellationToken);
 
@@ -83,17 +84,19 @@ internal partial class CsvMessageWriter : MessageWriter
         await _writer.WriteAsync(',');
 
         // Message timestamp
-        await _writer.WriteAsync(CsvEncode(Context.FormatDate(message.Timestamp)));
+        await _writer.WriteAsync(CsvEncode(Context.FormatDate(message.Timestamp, "o")));
         await _writer.WriteAsync(',');
 
         // Message content
-        if (message.Kind.IsSystemNotification())
+        if (message.IsSystemNotification)
         {
             await _writer.WriteAsync(CsvEncode(message.GetFallbackContent()));
         }
         else
         {
-            await _writer.WriteAsync(CsvEncode(await FormatMarkdownAsync(message.Content, cancellationToken)));
+            await _writer.WriteAsync(
+                CsvEncode(await FormatMarkdownAsync(message.Content, cancellationToken))
+            );
         }
 
         await _writer.WriteAsync(',');
@@ -120,7 +123,7 @@ internal partial class CsvMessageWriter
 {
     private static string CsvEncode(string value)
     {
-        value = value.Replace("\"", "\"\"");
+        value = value.Replace("\"", "\"\"", StringComparison.Ordinal);
         return $"\"{value}\"";
     }
 }

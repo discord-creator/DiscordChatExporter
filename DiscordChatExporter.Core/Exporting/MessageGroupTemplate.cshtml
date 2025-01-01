@@ -19,8 +19,8 @@
     ValueTask<string> ResolveAssetUrlAsync(string url) =>
         Context.ResolveAssetUrlAsync(url, CancellationToken);
 
-    string FormatDate(DateTimeOffset instant) =>
-        Context.FormatDate(instant);
+    string FormatDate(DateTimeOffset instant, string format = "g") =>
+        Context.FormatDate(instant, format);
 
     async ValueTask<string> FormatMarkdownAsync(string markdown) =>
         Context.Request.ShouldFormatMarkdown
@@ -40,14 +40,14 @@
 
     var authorMember = Context.TryGetMember(message.Author.Id);
     var authorColor = Context.TryGetUserColor(message.Author.Id);
-    var authorNick = message.Author.IsBot
-        ? message.Author.Name
-        : authorMember?.Nick ?? message.Author.Name;
+    var authorDisplayName = message.Author.IsBot
+        ? message.Author.DisplayName
+        : authorMember?.DisplayName ?? message.Author.DisplayName;
 
     <div id="chatlog__message-container-@message.Id" class="chatlog__message-container @(message.IsPinned ? "chatlog__message-container--pinned" : null)" data-message-id="@message.Id">
         <div class="chatlog__message">
-            @{/* System notification */}
-            @if (message.Kind.IsSystemNotification())
+            @* System notification *@
+            @if (message.IsSystemNotification)
             {
                 <div class="chatlog__message-aside">
                     <svg class="chatlog__system-notification-icon">
@@ -70,18 +70,18 @@
                 </div>
 
                 <div class="chatlog__message-primary">
-                    @{/* Author name */}
-                    <span class="chatlog__system-notification-author" style="@(authorColor is not null ? $"color: rgb({authorColor.Value.R}, {authorColor.Value.G}, {authorColor.Value.B})" : null)" title="@message.Author.FullName" data-user-id="@message.Author.Id">@authorNick</span>
+                    @* Author name *@
+                    <span class="chatlog__system-notification-author" style="@(authorColor is not null ? $"color: rgb({authorColor.Value.R}, {authorColor.Value.G}, {authorColor.Value.B})" : null)" title="@message.Author.FullName" data-user-id="@message.Author.Id">@authorDisplayName</span>
 
-                    @{/* Space out the content */}
+                    @* Space out the content *@
                     <span> </span>
 
-                    @{/* System notification content */}
+                    @* System notification content *@
                     <span class="chatlog__system-notification-content">
                         @if (message.Kind == MessageKind.RecipientAdd && message.MentionedUsers.Any())
                         {
                             <span>added </span>
-                            <a class="chatlog__system-notification-link" title="@message.MentionedUsers.First().FullName">@message.MentionedUsers.First().Name</a>
+                            <a class="chatlog__system-notification-link" title="@message.MentionedUsers.First().FullName">@message.MentionedUsers.First().DisplayName</a>
                             <span> to the group.</span>
                         }
                         else if (message.Kind == MessageKind.RecipientRemove && message.MentionedUsers.Any())
@@ -93,13 +93,13 @@
                             else
                             {
                                 <span>removed </span>
-                                <a class="chatlog__system-notification-link" title="@message.MentionedUsers.First().FullName">@message.MentionedUsers.First().Name</a>
+                                <a class="chatlog__system-notification-link" title="@message.MentionedUsers.First().FullName">@message.MentionedUsers.First().DisplayName</a>
                                 <span> from the group.</span>
                             }
                         }
                         else if (message.Kind == MessageKind.Call)
                         {
-                            <span>started a call that lasted @(((message.CallEndedTimestamp ?? message.Timestamp) - message.Timestamp).TotalMinutes) minutes</span>
+                            <span>started a call that lasted @(((message.CallEndedTimestamp ?? message.Timestamp) - message.Timestamp).TotalMinutes.ToString("n0", Context.Request.CultureInfo)) minutes</span>
                         }
                         else if (message.Kind == MessageKind.ChannelNameChange)
                         {
@@ -130,8 +130,8 @@
                         }
                     </span>
 
-                    @{/* Timestamp */}
-                    <span class="chatlog__system-notification-timestamp">
+                    @* Timestamp *@
+                    <span class="chatlog__system-notification-timestamp" title="@FormatDate(message.Timestamp, "f")">
                         <a href="#chatlog__message-container-@message.Id">@FormatDate(message.Timestamp)</a>
                     </span>
                 </div>
@@ -153,7 +153,7 @@
                     }
                     else
                     {
-                        <div class="chatlog__short-timestamp" title="@FormatDate(message.Timestamp)">@message.Timestamp.ToLocalString("t")</div>
+                        <div class="chatlog__short-timestamp" title="@FormatDate(message.Timestamp, "f")">@FormatDate(message.Timestamp, "t")</div>
                     }
                 </div>
 
@@ -168,12 +168,12 @@
                                 {
                                     var referencedUserMember = Context.TryGetMember(message.ReferencedMessage.Author.Id);
                                     var referencedUserColor = Context.TryGetUserColor(message.ReferencedMessage.Author.Id);
-                                    var referencedUserNick = message.ReferencedMessage.Author.IsBot
-                                        ? message.ReferencedMessage.Author.Name
-                                        : referencedUserMember?.Nick ?? message.ReferencedMessage.Author.Name;
+                                    var referencedUserDisplayName = message.ReferencedMessage.Author.IsBot
+                                        ? message.ReferencedMessage.Author.DisplayName
+                                        : referencedUserMember?.DisplayName ?? message.ReferencedMessage.Author.DisplayName;
 
                                     <img class="chatlog__reply-avatar" src="@await ResolveAssetUrlAsync(referencedUserMember?.AvatarUrl ?? message.ReferencedMessage.Author.AvatarUrl)" alt="Avatar" loading="lazy">
-                                    <div class="chatlog__reply-author" style="@(referencedUserColor is not null ? $"color: rgb({referencedUserColor.Value.R}, {referencedUserColor.Value.G}, {referencedUserColor.Value.B})" : null)" title="@message.ReferencedMessage.Author.FullName">@referencedUserNick</div>
+                                    <div class="chatlog__reply-author" style="@(referencedUserColor is not null ? $"color: rgb({referencedUserColor.Value.R}, {referencedUserColor.Value.G}, {referencedUserColor.Value.B})" : null)" title="@message.ReferencedMessage.Author.FullName">@referencedUserDisplayName</div>
                                     <div class="chatlog__reply-content">
                                         <span class="chatlog__reply-link" onclick="scrollToMessage(event, '@message.ReferencedMessage.Id')">
                                             @if (!string.IsNullOrWhiteSpace(message.ReferencedMessage.Content) && !message.ReferencedMessage.IsContentHidden())
@@ -193,7 +193,7 @@
 
                                         @if (message.ReferencedMessage.EditedTimestamp is not null)
                                         {
-                                            <span class="chatlog__reply-edited-timestamp" title="@FormatDate(message.ReferencedMessage.EditedTimestamp.Value)">(edited)</span>
+                                            <span class="chatlog__reply-edited-timestamp" title="@FormatDate(message.ReferencedMessage.EditedTimestamp.Value, "f")">(edited)</span>
                                         }
                                     </div>
                                 }
@@ -201,12 +201,12 @@
                                 {
                                     var interactionUserMember = Context.TryGetMember(message.Interaction.User.Id);
                                     var interactionUserColor = Context.TryGetUserColor(message.Interaction.User.Id);
-                                    var interactionUserNick = message.Interaction.User.IsBot
-                                        ? message.Interaction.User.Name
-                                        : interactionUserMember?.Nick ?? message.Interaction.User.Name;
+                                    var interactionUserDisplayName = message.Interaction.User.IsBot
+                                        ? message.Interaction.User.DisplayName
+                                        : interactionUserMember?.DisplayName ?? message.Interaction.User.DisplayName;
 
                                     <img class="chatlog__reply-avatar" src="@await ResolveAssetUrlAsync(interactionUserMember?.AvatarUrl ?? message.Interaction.User.AvatarUrl)" alt="Avatar" loading="lazy">
-                                    <div class="chatlog__reply-author" style="@(interactionUserColor is not null ? $"color: rgb({interactionUserColor.Value.R}, {interactionUserColor.Value.G}, {interactionUserColor.Value.B})" : null)" title="@message.Interaction.User.FullName">@interactionUserNick</div>
+                                    <div class="chatlog__reply-author" style="@(interactionUserColor is not null ? $"color: rgb({interactionUserColor.Value.R}, {interactionUserColor.Value.G}, {interactionUserColor.Value.B})" : null)" title="@message.Interaction.User.FullName">@interactionUserDisplayName</div>
                                     <div class="chatlog__reply-content">
                                         used /@message.Interaction.Name
                                     </div>
@@ -222,10 +222,10 @@
 
                         // Header
                         <div class="chatlog__header">
-                            @{/* Author name */}
-                            <span class="chatlog__author" style="@(authorColor is not null ? $"color: rgb({authorColor.Value.R}, {authorColor.Value.G}, {authorColor.Value.B})" : null)" title="@message.Author.FullName" data-user-id="@message.Author.Id">@authorNick</span>
+                            @* Author name *@
+                            <span class="chatlog__author" style="@(authorColor is not null ? $"color: rgb({authorColor.Value.R}, {authorColor.Value.G}, {authorColor.Value.B})" : null)" title="@message.Author.FullName" data-user-id="@message.Author.Id">@authorDisplayName</span>
 
-                            @{/* Bot tag */}
+                            @* Bot tag *@
                             @if (message.Author.IsBot)
                             {
                                 // For cross-posts, the BOT tag is replaced with the SERVER tag
@@ -239,40 +239,40 @@
                                 }
                             }
 
-                            @{/* Timestamp */}
-                            <span class="chatlog__timestamp"><a href="#chatlog__message-container-@message.Id">@FormatDate(message.Timestamp)</a></span>
+                            @* Timestamp *@
+                            <span class="chatlog__timestamp" title="@FormatDate(message.Timestamp, "f")"><a href="#chatlog__message-container-@message.Id">@FormatDate(message.Timestamp)</a></span>
                         </div>
                     }
 
-                    @{/* Content */}
+                    @* Content *@
                     @if ((!string.IsNullOrWhiteSpace(message.Content) && !message.IsContentHidden()) || message.EditedTimestamp is not null)
                     {
                         <div class="chatlog__content chatlog__markdown">
-                            @{/* Text */}
+                            @* Text *@
                             @if (!string.IsNullOrWhiteSpace(message.Content) && !message.IsContentHidden())
                             {
                                 <span class="chatlog__markdown-preserve"><!--wmm:ignore-->@Html.Raw(await FormatMarkdownAsync(message.Content))<!--/wmm:ignore--></span>
                             }
 
-                            @{/* Edited timestamp */}
+                            @* Edited timestamp *@
                             @if (message.EditedTimestamp is not null)
                             {
-                                <span class="chatlog__edited-timestamp" title="@FormatDate(message.EditedTimestamp.Value)">(edited)</span>
+                                <span class="chatlog__edited-timestamp" title="@FormatDate(message.EditedTimestamp.Value, "f")">(edited)</span>
                             }
                         </div>
                     }
 
-                    @{/* Attachments */}
+                    @* Attachments *@
                     @foreach (var attachment in message.Attachments)
                     {
                         <div class="chatlog__attachment @(attachment.IsSpoiler ? "chatlog__attachment--hidden" : null)" onclick="@(attachment.IsSpoiler ? "showSpoiler(event, this)" : null)">
-                            @{/* Spoiler caption */}
+                            @* Spoiler caption *@
                             @if (attachment.IsSpoiler)
                             {
                                 <div class="chatlog__attachment-spoiler-caption">SPOILER</div>
                             }
 
-                            @{/* Attachment preview */}
+                            @* Attachment preview *@
                             @if (attachment.IsImage)
                             {
                                 <a href="@await ResolveAssetUrlAsync(attachment.Url)">
@@ -310,7 +310,7 @@
                         </div>
                     }
 
-                    @{/* Invites */}
+                    @* Invites *@
                     @{
                         var inviteCodes = MarkdownParser
                             .ExtractLinks(message.Content)
@@ -321,7 +321,7 @@
 
                         foreach (var inviteCode in inviteCodes)
                         {
-                            var invite = await Context.Discord.TryGetGuildInviteAsync(inviteCode, CancellationToken);
+                            var invite = await Context.Discord.TryGetInviteAsync(inviteCode, CancellationToken);
                             if (invite is null)
                             {
                                 continue;
@@ -329,7 +329,7 @@
 
                             <div class="chatlog__embed">
                                 <div class="chatlog__embed-invite-container">
-                                    <div class="chatlog__embed-invite-title">@(invite.Channel?.Kind.IsDirect() == true ? "Invite to join a group DM" : "Invite to join a server")</div>
+                                    <div class="chatlog__embed-invite-title">@(invite.Channel?.IsDirect == true ? "Invite to join a group DM" : "Invite to join a server")</div>
                                     <div class="chatlog__embed-invite">
                                         <div class="chatlog__embed-invite-guild-icon-container">
                                             <img class="chatlog__embed-invite-guild-icon" src="@await ResolveAssetUrlAsync(invite.Channel?.IconUrl ?? invite.Guild.IconUrl)" alt="Guild icon" loading="lazy">
@@ -353,7 +353,7 @@
                         }
                     }
 
-                    @{/* Embeds */}
+                    @* Embeds *@
                     @foreach (var embed in message.Embeds)
                     {
                         // Spotify embed
@@ -369,7 +369,7 @@
                         else if (embed.TryGetYouTubeVideo() is { } youTubeVideoEmbed)
                         {
                             <div class="chatlog__embed">
-                                @{/* Color pill */}
+                                @* Color pill *@
                                 @if (embed.Color is not null)
                                 {
                                     <div class="chatlog__embed-color-pill" style="background-color: rgba(@embed.Color.Value.R, @embed.Color.Value.G, @embed.Color.Value.B, @embed.Color.Value.A)"></div>
@@ -382,7 +382,7 @@
                                 <div class="chatlog__embed-content-container">
                                     <div class="chatlog__embed-content">
                                         <div class="chatlog__embed-text">
-                                            @{/* Embed author */}
+                                            @* Embed author *@
                                             @if (embed.Author is not null)
                                             {
                                                 <div class="chatlog__embed-author-container">
@@ -407,7 +407,7 @@
                                                 </div>
                                             }
 
-                                            @{/* Embed title */}
+                                            @* Embed title *@
                                             @if (!string.IsNullOrWhiteSpace(embed.Title))
                                             {
                                                 <div class="chatlog__embed-title">
@@ -424,7 +424,7 @@
                                                 </div>
                                             }
 
-                                            @{/* Video player */}
+                                            @* Video player *@
                                             <div class="chatlog__embed-youtube-container">
                                                 <iframe class="chatlog__embed-youtube" src="@youTubeVideoEmbed.Url" width="400" height="225"></iframe>
                                             </div>
@@ -448,7 +448,10 @@
                             </div>
                         }
                         // Generic video embed
-                        else if (embed.Kind == EmbedKind.Video && !string.IsNullOrWhiteSpace(embed.Url))
+                        else if (embed.Kind == EmbedKind.Video 
+                                 && !string.IsNullOrWhiteSpace(embed.Url)
+                                 // Twitch clips cannot be embedded in local HTML files
+                                 && embed.TryGetTwitchClip() is null)
                         {
                             var embedVideoUrl =
                                 embed.Video?.ProxyUrl ?? embed.Video?.Url ??
@@ -477,7 +480,7 @@
                         else
                         {
                             <div class="chatlog__embed">
-                                @{/* Color pill */}
+                                @* Color pill *@
                                 @if (embed.Color is not null)
                                 {
                                     <div class="chatlog__embed-color-pill" style="background-color: rgba(@embed.Color.Value.R, @embed.Color.Value.G, @embed.Color.Value.B, @embed.Color.Value.A)"></div>
@@ -490,7 +493,7 @@
                                 <div class="chatlog__embed-content-container">
                                     <div class="chatlog__embed-content">
                                         <div class="chatlog__embed-text">
-                                            @{/* Embed author */}
+                                            @* Embed author *@
                                             @if (embed.Author is not null)
                                             {
                                                 <div class="chatlog__embed-author-container">
@@ -515,7 +518,7 @@
                                                 </div>
                                             }
 
-                                            @{/* Embed title */}
+                                            @* Embed title *@
                                             @if (!string.IsNullOrWhiteSpace(embed.Title))
                                             {
                                                 <div class="chatlog__embed-title">
@@ -532,7 +535,7 @@
                                                 </div>
                                             }
 
-                                            @{/* Embed description */}
+                                            @* Embed description *@
                                             @if (!string.IsNullOrWhiteSpace(embed.Description))
                                             {
                                                 <div class="chatlog__embed-description">
@@ -540,7 +543,7 @@
                                                 </div>
                                             }
 
-                                            @{/* Embed fields */}
+                                            @* Embed fields *@
                                             @if (embed.Fields.Any())
                                             {
                                                 <div class="chatlog__embed-fields">
@@ -566,7 +569,7 @@
                                             }
                                         </div>
 
-                                        @{/* Embed content */}
+                                        @* Embed content *@
                                         @if (embed.Thumbnail is not null && !string.IsNullOrWhiteSpace(embed.Thumbnail.Url))
                                         {
                                             <div class="chatlog__embed-thumbnail-container">
@@ -577,7 +580,7 @@
                                         }
                                     </div>
 
-                                    @{/* Embed images */}
+                                    @* Embed images *@
                                     @if (embed.Images.Any())
                                     {
                                         <div class="chatlog__embed-images @(embed.Images.Count == 1 ? "chatlog__embed-images--single" : null)">
@@ -595,18 +598,18 @@
                                         </div>
                                     }
 
-                                    @{/* Embed footer & icon */}
+                                    @* Embed footer & icon *@
                                     @if (embed.Footer is not null || embed.Timestamp is not null)
                                     {
                                         <div class="chatlog__embed-footer">
-                                            @{/* Footer icon */}
+                                            @* Footer icon *@
                                             @if (!string.IsNullOrWhiteSpace(embed.Footer?.IconUrl))
                                             {
                                                 <img class="chatlog__embed-footer-icon" src="@await ResolveAssetUrlAsync(embed.Footer.IconProxyUrl ?? embed.Footer.IconUrl)" alt="Footer icon" loading="lazy">
                                             }
 
                                             <span class="chatlog__embed-footer-text">
-                                                @{/* Footer text */}
+                                                @* Footer text *@
                                                 @if (!string.IsNullOrWhiteSpace(embed.Footer?.Text))
                                                 {
                                                     @embed.Footer.Text
@@ -617,7 +620,7 @@
                                                     @(" • ")
                                                 }
 
-                                                @{/* Embed timestamp */}
+                                                @* Embed timestamp *@
                                                 @if (embed.Timestamp is not null)
                                                 {
                                                     @FormatDate(embed.Timestamp.Value)
@@ -630,11 +633,11 @@
                         }
                     }
 
-                    @{/* Stickers */}
+                    @* Stickers *@
                     @foreach (var sticker in message.Stickers)
                     {
                         <div class="chatlog__sticker" title="@sticker.Name">
-                            @if (sticker.Format is StickerFormat.Png or StickerFormat.Apng)
+                            @if (sticker.IsImage)
                             {
                                 <img class="chatlog__sticker--media" src="@await ResolveAssetUrlAsync(sticker.SourceUrl)" alt="Sticker">
                             }
@@ -645,7 +648,7 @@
                         </div>
                     }
 
-                    @{/* Message reactions */}
+                    @* Message reactions *@
                     @if (message.Reactions.Any())
                     {
                         <div class="chatlog__reactions">

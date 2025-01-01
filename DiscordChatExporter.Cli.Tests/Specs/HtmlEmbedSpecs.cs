@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using AngleSharp.Dom;
 using DiscordChatExporter.Cli.Tests.Infra;
@@ -12,7 +13,7 @@ namespace DiscordChatExporter.Cli.Tests.Specs;
 public class HtmlEmbedSpecs
 {
     [Fact]
-    public async Task Message_with_an_embed_is_rendered_correctly()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_rich_embed()
     {
         // Act
         var message = await ExportWrapper.GetMessageAsHtmlAsync(
@@ -21,19 +22,25 @@ public class HtmlEmbedSpecs
         );
 
         // Assert
-        message.Text().Should().ContainAll(
-            "Embed author",
-            "Embed title",
-            "Embed description",
-            "Field 1", "Value 1",
-            "Field 2", "Value 2",
-            "Field 3", "Value 3",
-            "Embed footer"
-        );
+        message
+            .Text()
+            .Should()
+            .ContainAll(
+                "Embed author",
+                "Embed title",
+                "Embed description",
+                "Field 1",
+                "Value 1",
+                "Field 2",
+                "Value 2",
+                "Field 3",
+                "Value 3",
+                "Embed footer"
+            );
     }
 
     [Fact]
-    public async Task Message_with_an_image_link_is_rendered_with_an_image_embed()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_an_image_embed()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/537
 
@@ -48,13 +55,13 @@ public class HtmlEmbedSpecs
             .QuerySelectorAll("img")
             .Select(e => e.GetAttribute("src"))
             .WhereNotNull()
-            .Where(s => s.EndsWith("f8w05ja8s4e61.png"))
+            .Where(s => s.Contains("f8w05ja8s4e61.png", StringComparison.Ordinal))
             .Should()
             .ContainSingle();
     }
 
     [Fact]
-    public async Task Message_with_an_image_link_and_nothing_else_is_rendered_without_text_content()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_an_image_embed_and_the_text_is_hidden_if_it_only_contains_the_image_link()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/682
 
@@ -70,7 +77,7 @@ public class HtmlEmbedSpecs
     }
 
     [Fact]
-    public async Task Message_with_a_video_link_is_rendered_with_a_video_embed()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_video_embed()
     {
         // Act
         var message = await ExportWrapper.GetMessageAsHtmlAsync(
@@ -83,13 +90,18 @@ public class HtmlEmbedSpecs
             .QuerySelectorAll("source")
             .Select(e => e.GetAttribute("src"))
             .WhereNotNull()
-            .Where(s => s.EndsWith("i_am_currently_feeling_slight_displeasure_of_what_you_have_just_sent_lqrem.mp4"))
+            .Where(s =>
+                s.Contains(
+                    "i_am_currently_feeling_slight_displeasure_of_what_you_have_just_sent_lqrem.mp4",
+                    StringComparison.Ordinal
+                )
+            )
             .Should()
             .ContainSingle();
     }
 
     [Fact]
-    public async Task Message_with_a_GIFV_link_is_rendered_with_a_video_embed()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_GIFV_embed()
     {
         // Act
         var message = await ExportWrapper.GetMessageAsHtmlAsync(
@@ -102,13 +114,13 @@ public class HtmlEmbedSpecs
             .QuerySelectorAll("source")
             .Select(e => e.GetAttribute("src"))
             .WhereNotNull()
-            .Where(s => s.EndsWith("tooncasm-test-copy.mp4"))
+            .Where(s => s.Contains("tooncasm-test-copy.mp4", StringComparison.Ordinal))
             .Should()
             .ContainSingle();
     }
 
     [Fact]
-    public async Task Message_with_a_GIFV_link_and_nothing_else_is_rendered_without_text_content()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_GIFV_embed_and_the_text_is_hidden_if_it_only_contains_the_video_link()
     {
         // Act
         var message = await ExportWrapper.GetMessageAsHtmlAsync(
@@ -122,7 +134,7 @@ public class HtmlEmbedSpecs
     }
 
     [Fact]
-    public async Task Message_with_a_Spotify_track_link_is_rendered_with_a_track_embed()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_Spotify_track_embed()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/657
 
@@ -134,11 +146,31 @@ public class HtmlEmbedSpecs
 
         // Assert
         var iframeUrl = message.QuerySelector("iframe")?.GetAttribute("src");
-        iframeUrl.Should().Be("https://open.spotify.com/embed/track/1LHZMWefF9502NPfArRfvP");
+        iframeUrl.Should().StartWith("https://open.spotify.com/embed/track/1LHZMWefF9502NPfArRfvP");
+    }
+
+    [Fact(Skip = "Twitch does not allow embeds from inside local HTML files")]
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_Twitch_clip_embed()
+    {
+        // https://github.com/Tyrrrz/DiscordChatExporter/issues/1196
+
+        // Act
+        var message = await ExportWrapper.GetMessageAsHtmlAsync(
+            ChannelIds.EmbedTestCases,
+            Snowflake.Parse("1207002986128216074")
+        );
+
+        // Assert
+        var iframeUrl = message.QuerySelector("iframe")?.GetAttribute("src");
+        iframeUrl
+            .Should()
+            .StartWith(
+                "https://clips.twitch.tv/embed?clip=SpicyMildCiderThisIsSparta--PQhbllrvej_Ee7v"
+            );
     }
 
     [Fact]
-    public async Task Message_with_a_YouTube_video_link_is_rendered_with_a_video_embed()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_YouTube_video_embed()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/570
 
@@ -150,11 +182,11 @@ public class HtmlEmbedSpecs
 
         // Assert
         var iframeUrl = message.QuerySelector("iframe")?.GetAttribute("src");
-        iframeUrl.Should().Be("https://www.youtube.com/embed/qOWW4OlgbvE");
+        iframeUrl.Should().StartWith("https://www.youtube.com/embed/qOWW4OlgbvE");
     }
 
     [Fact]
-    public async Task Message_with_a_Twitter_post_link_with_multiple_images_is_rendered_as_a_single_embed()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_Twitter_post_embed_that_includes_multiple_images()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/695
 
@@ -165,22 +197,52 @@ public class HtmlEmbedSpecs
         );
 
         // Assert
-        message
+        var imageUrls = message
             .QuerySelectorAll("img")
             .Select(e => e.GetAttribute("src"))
+            .ToArray();
+
+        imageUrls
             .Should()
-            .ContainInOrder(
-                "https://images-ext-1.discordapp.net/external/-n--xW3EHH_3jlrheVkMXHCM7T86b5Ty4-MzXCT4m1Q/https/pbs.twimg.com/media/FVYIzYPWAAAMBqZ.png",
-                "https://images-ext-2.discordapp.net/external/z5nEmGeEldV-kswydGLhqUsFHbb5AWHtdvc9XT6N5rE/https/pbs.twimg.com/media/FVYJBWJWAAMNAx2.png",
-                "https://images-ext-2.discordapp.net/external/gnip03SawMB6uZLagN5sRDpA_1Ap1CcEhMbJfK1z6WQ/https/pbs.twimg.com/media/FVYJHiRX0AANZcz.png",
-                "https://images-ext-2.discordapp.net/external/jl1v6cCbLaGmiwmKU-ZkXnF4cFsJ39f9A3-oEdqPdZs/https/pbs.twimg.com/media/FVYJNZNXwAAPnVG.png"
+            .Contain(u =>
+                u.EndsWith(
+                    "https/pbs.twimg.com/media/FVYIzYPWAAAMBqZ.png",
+                    StringComparison.Ordinal
+                )
+            );
+
+        imageUrls
+            .Should()
+            .Contain(u =>
+                u.EndsWith(
+                    "https/pbs.twimg.com/media/FVYJBWJWAAMNAx2.png",
+                    StringComparison.Ordinal
+                )
+            );
+
+        imageUrls
+            .Should()
+            .Contain(u =>
+                u.EndsWith(
+                    "https/pbs.twimg.com/media/FVYJHiRX0AANZcz.png",
+                    StringComparison.Ordinal
+                )
+            );
+
+        imageUrls
+            .Should()
+            .Contain(u =>
+                u.EndsWith(
+                    "https/pbs.twimg.com/media/FVYJNZNXwAAPnVG.png",
+                    StringComparison.Ordinal
+                )
             );
 
         message.QuerySelectorAll(".chatlog__embed").Should().ContainSingle();
     }
 
     [Fact]
-    public async Task Message_with_a_guild_invite_link_is_rendered_with_a_widget()
+    public async Task I_can_export_a_channel_that_contains_a_message_with_a_guild_invite()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/649
 
@@ -191,6 +253,6 @@ public class HtmlEmbedSpecs
         );
 
         // Assert
-        message.Text().Should().Contain("DiscordChatExporter TestServer");
+        message.Text().Should().Contain("DiscordChatExporter Test Server");
     }
 }

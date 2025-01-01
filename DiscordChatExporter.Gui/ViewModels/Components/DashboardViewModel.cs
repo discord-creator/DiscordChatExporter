@@ -1,92 +1,113 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using DiscordChatExporter.Core.Discord;
 using DiscordChatExporter.Core.Discord.Data;
 using DiscordChatExporter.Core.Exceptions;
 using DiscordChatExporter.Core.Exporting;
 using DiscordChatExporter.Core.Utils.Extensions;
+using DiscordChatExporter.Gui.Framework;
+using DiscordChatExporter.Gui.Models;
 using DiscordChatExporter.Gui.Services;
 using DiscordChatExporter.Gui.Utils;
-using DiscordChatExporter.Gui.ViewModels.Dialogs;
-using DiscordChatExporter.Gui.ViewModels.Messages;
-using DiscordChatExporter.Gui.ViewModels.Framework;
+using DiscordChatExporter.Gui.Utils.Extensions;
 using Gress;
 using Gress.Completable;
-using Stylet;
 
 namespace DiscordChatExporter.Gui.ViewModels.Components;
 
-public class DashboardViewModel : PropertyChangedBase
+public partial class DashboardViewModel : ViewModelBase
 {
-    private readonly IViewModelFactory _viewModelFactory;
-    private readonly IEventAggregator _eventAggregator;
+    private readonly ViewModelManager _viewModelManager;
+    private readonly SnackbarManager _snackbarManager;
     private readonly DialogManager _dialogManager;
     private readonly SettingsService _settingsService;
 
+    private readonly DisposableCollector _eventRoot = new();
     private readonly AutoResetProgressMuxer _progressMuxer;
 
     private DiscordClient? _discord;
 
-    public bool IsBusy { get; private set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsProgressIndeterminate))]
+    [NotifyCanExecuteChangedFor(nameof(PullGuildsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PullChannelsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
+    private bool _isBusy;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PullGuildsCommand))]
+    private string? _token;
+
+    [ObservableProperty]
+    private IReadOnlyList<Guild>? _availableGuilds;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PullChannelsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
+    private Guild? _selectedGuild;
+
+    [ObservableProperty]
+    private IReadOnlyList<ChannelConnection>? _availableChannels;
+
+    public DashboardViewModel(
+        ViewModelManager viewModelManager,
+        DialogManager dialogManager,
+        SnackbarManager snackbarManager,
+        SettingsService settingsService
+    )
+    {
+        _viewModelManager = viewModelManager;
+        _dialogManager = dialogManager;
+        _snackbarManager = snackbarManager;
+        _settingsService = settingsService;
+
+        _progressMuxer = Progress.CreateMuxer().WithAutoReset();
+
+        _eventRoot.Add(
+            Progress.WatchProperty(
+                o => o.Current,
+                () => OnPropertyChanged(nameof(IsProgressIndeterminate))
+            )
+        );
+
+        _eventRoot.Add(
+            SelectedChannels.WatchProperty(
+                o => o.Count,
+                () => ExportCommand.NotifyCanExecuteChanged()
+            )
+        );
+    }
 
     public ProgressContainer<Percentage> Progress { get; } = new();
 
     public bool IsProgressIndeterminate => IsBusy && Progress.Current.Fraction is <= 0 or >= 1;
 
-    public string? Token { get; set; }
+    public ObservableCollection<ChannelConnection> SelectedChannels { get; } = [];
 
-    private IReadOnlyDictionary<Guild, IReadOnlyList<Channel>>? ChannelsByGuild { get; set; }
-
-    public IReadOnlyList<Guild>? AvailableGuilds => ChannelsByGuild?.Keys.ToArray();
-
-    public Guild? SelectedGuild { get; set; }
-
-    public bool IsDirectMessageGuildSelected => SelectedGuild?.Id == Guild.DirectMessages.Id;
-
-    public IReadOnlyList<Channel>? AvailableChannels => SelectedGuild is not null
-        ? ChannelsByGuild?[SelectedGuild]
-        : null;
-
-    public IReadOnlyList<Channel>? SelectedChannels { get; set; }
-
-    public DashboardViewModel(
-        IViewModelFactory viewModelFactory,
-        IEventAggregator eventAggregator,
-        DialogManager dialogManager,
-        SettingsService settingsService)
-    {
-        _viewModelFactory = viewModelFactory;
-        _eventAggregator = eventAggregator;
-        _dialogManager = dialogManager;
-        _settingsService = settingsService;
-
-        _progressMuxer = Progress.CreateMuxer().WithAutoReset();
-
-        this.Bind(o => o.IsBusy, (_, _) => NotifyOfPropertyChange(() => IsProgressIndeterminate));
-        Progress.Bind(o => o.Current, (_, _) => NotifyOfPropertyChange(() => IsProgressIndeterminate));
-    }
-
-    public void OnViewLoaded()
+    [RelayCommand]
+    private void Initialize()
     {
         if (!string.IsNullOrWhiteSpace(_settingsService.LastToken))
             Token = _settingsService.LastToken;
     }
 
-    public async void ShowSettings()
-    {
-        var dialog = _viewModelFactory.CreateSettingsViewModel();
-        await _dialogManager.ShowDialogAsync(dialog);
-    }
+    [RelayCommand]
+    private async Task ShowSettingsAsync() =>
+        await _dialogManager.ShowDialogAsync(_viewModelManager.CreateSettingsViewModel());
 
-    public void ShowHelp() => ProcessEx.StartShellExecute(App.DocumentationUrl);
+    [RelayCommand]
+    private void ShowHelp() => ProcessEx.StartShellExecute(Program.ProjectDocumentationUrl);
 
-    public bool CanPopulateGuildsAndChannels =>
-        !IsBusy && !string.IsNullOrWhiteSpace(Token);
+    private bool CanPullGuilds() => !IsBusy && !string.IsNullOrWhiteSpace(Token);
 
-    public async void PopulateGuildsAndChannels()
+    [RelayCommand(CanExecute = nameof(CanPullGuilds))]
+    private async Task PullGuildsAsync()
     {
         IsBusy = true;
         var progress = _progressMuxer.CreateInput();
@@ -97,32 +118,29 @@ public class DashboardViewModel : PropertyChangedBase
             if (string.IsNullOrWhiteSpace(token))
                 return;
 
+            AvailableGuilds = null;
+            SelectedGuild = null;
+            AvailableChannels = null;
+            SelectedChannels.Clear();
+
+            _discord = new DiscordClient(token);
             _settingsService.LastToken = token;
 
-            var discord = new DiscordClient(token);
+            var guilds = await _discord.GetUserGuildsAsync();
 
-            var channelsByGuild = new Dictionary<Guild, IReadOnlyList<Channel>>();
-            await foreach (var guild in discord.GetUserGuildsAsync())
-            {
-                channelsByGuild[guild] = (await discord.GetGuildChannelsAsync(guild.Id))
-                    .Where(c => c.Kind != ChannelKind.GuildCategory)
-                    .ToArray();
-            }
+            AvailableGuilds = guilds;
+            SelectedGuild = guilds.FirstOrDefault();
 
-            _discord = discord;
-            ChannelsByGuild = channelsByGuild;
-            SelectedGuild = channelsByGuild.Keys.FirstOrDefault();
+            await PullChannelsAsync();
         }
         catch (DiscordChatExporterException ex) when (!ex.IsFatal)
         {
-            _eventAggregator.Publish(
-                new NotificationMessage(ex.Message.TrimEnd('.'))
-            );
+            _snackbarManager.Notify(ex.Message.TrimEnd('.'));
         }
         catch (Exception ex)
         {
-            var dialog = _viewModelFactory.CreateMessageBoxViewModel(
-                "Error pulling guilds and channels",
+            var dialog = _viewModelManager.CreateMessageBoxViewModel(
+                "Error pulling guilds",
                 ex.ToString()
             );
 
@@ -135,34 +153,98 @@ public class DashboardViewModel : PropertyChangedBase
         }
     }
 
-    public bool CanExportChannels =>
-        !IsBusy &&
-        _discord is not null &&
-        SelectedGuild is not null &&
-        SelectedChannels?.Any() is true;
+    private bool CanPullChannels() => !IsBusy && _discord is not null && SelectedGuild is not null;
 
-    public async void ExportChannels()
+    [RelayCommand(CanExecute = nameof(CanPullChannels))]
+    private async Task PullChannelsAsync()
+    {
+        IsBusy = true;
+        var progress = _progressMuxer.CreateInput();
+
+        try
+        {
+            if (_discord is null || SelectedGuild is null)
+                return;
+
+            AvailableChannels = null;
+            SelectedChannels.Clear();
+
+            var channels = new List<Channel>();
+
+            // Regular channels
+            await foreach (var channel in _discord.GetGuildChannelsAsync(SelectedGuild.Id))
+                channels.Add(channel);
+
+            // Threads
+            if (_settingsService.ThreadInclusionMode != ThreadInclusionMode.None)
+            {
+                await foreach (
+                    var thread in _discord.GetGuildThreadsAsync(
+                        SelectedGuild.Id,
+                        _settingsService.ThreadInclusionMode == ThreadInclusionMode.All
+                    )
+                )
+                {
+                    channels.Add(thread);
+                }
+            }
+
+            // Build a hierarchy of channels
+            var channelTree = ChannelConnection.BuildTree(
+                channels
+                    .OrderByDescending(c => c.IsDirect ? c.LastMessageId : null)
+                    .ThenBy(c => c.Position)
+                    .ToArray()
+            );
+
+            AvailableChannels = channelTree;
+            SelectedChannels.Clear();
+        }
+        catch (DiscordChatExporterException ex) when (!ex.IsFatal)
+        {
+            _snackbarManager.Notify(ex.Message.TrimEnd('.'));
+        }
+        catch (Exception ex)
+        {
+            var dialog = _viewModelManager.CreateMessageBoxViewModel(
+                "Error pulling channels",
+                ex.ToString()
+            );
+
+            await _dialogManager.ShowDialogAsync(dialog);
+        }
+        finally
+        {
+            progress.ReportCompletion();
+            IsBusy = false;
+        }
+    }
+
+    private bool CanExport() =>
+        !IsBusy && _discord is not null && SelectedGuild is not null && SelectedChannels.Any();
+
+    [RelayCommand(CanExecute = nameof(CanExport))]
+    private async Task ExportAsync()
     {
         IsBusy = true;
 
         try
         {
-            if (_discord is null || SelectedGuild is null || SelectedChannels is null || !SelectedChannels.Any())
+            if (_discord is null || SelectedGuild is null || !SelectedChannels.Any())
                 return;
 
-            var dialog = _viewModelFactory.CreateExportSetupViewModel(SelectedGuild, SelectedChannels);
+            var dialog = _viewModelManager.CreateExportSetupViewModel(
+                SelectedGuild,
+                SelectedChannels.Select(c => c.Channel).ToArray()
+            );
+
             if (await _dialogManager.ShowDialogAsync(dialog) != true)
                 return;
 
             var exporter = new ChannelExporter(_discord);
 
             var channelProgressPairs = dialog
-                .Channels!
-                .Select(c => new
-                {
-                    Channel = c,
-                    Progress = _progressMuxer.CreateInput()
-                })
+                .Channels!.Select(c => new { Channel = c, Progress = _progressMuxer.CreateInput() })
                 .ToArray();
 
             var successfulExportCount = 0;
@@ -171,7 +253,7 @@ public class DashboardViewModel : PropertyChangedBase
                 channelProgressPairs,
                 new ParallelOptions
                 {
-                    MaxDegreeOfParallelism = Math.Max(1, _settingsService.ParallelLimit)
+                    MaxDegreeOfParallelism = Math.Max(1, _settingsService.ParallelLimit),
                 },
                 async (pair, cancellationToken) =>
                 {
@@ -193,7 +275,8 @@ public class DashboardViewModel : PropertyChangedBase
                             dialog.ShouldFormatMarkdown,
                             dialog.ShouldDownloadAssets,
                             dialog.ShouldReuseAssets,
-                            _settingsService.DateFormat
+                            _settingsService.Locale,
+                            _settingsService.IsUtcNormalizationEnabled
                         );
 
                         await exporter.ExportChannelAsync(request, progress, cancellationToken);
@@ -202,9 +285,7 @@ public class DashboardViewModel : PropertyChangedBase
                     }
                     catch (DiscordChatExporterException ex) when (!ex.IsFatal)
                     {
-                        _eventAggregator.Publish(
-                            new NotificationMessage(ex.Message.TrimEnd('.') + $" ({channel.Name})")
-                        );
+                        _snackbarManager.Notify(ex.Message.TrimEnd('.'));
                     }
                     finally
                     {
@@ -213,17 +294,17 @@ public class DashboardViewModel : PropertyChangedBase
                 }
             );
 
-            // Notify of overall completion
+            // Notify of the overall completion
             if (successfulExportCount > 0)
             {
-                _eventAggregator.Publish(
-                    new NotificationMessage($"Successfully exported {successfulExportCount} channel(s)")
+                _snackbarManager.Notify(
+                    $"Successfully exported {successfulExportCount} channel(s)"
                 );
             }
         }
         catch (Exception ex)
         {
-            var dialog = _viewModelFactory.CreateMessageBoxViewModel(
+            var dialog = _viewModelManager.CreateMessageBoxViewModel(
                 "Error exporting channel(s)",
                 ex.ToString()
             );
@@ -236,9 +317,20 @@ public class DashboardViewModel : PropertyChangedBase
         }
     }
 
-    public void OpenDiscord() =>
-        ProcessEx.StartShellExecute("https://discord.com/app");
+    [RelayCommand]
+    private void OpenDiscord() => ProcessEx.StartShellExecute("https://discord.com/app");
 
-    public void OpenDiscordDeveloperPortal() =>
+    [RelayCommand]
+    private void OpenDiscordDeveloperPortal() =>
         ProcessEx.StartShellExecute("https://discord.com/developers/applications");
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _eventRoot.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
 }

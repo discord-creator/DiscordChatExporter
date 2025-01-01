@@ -21,7 +21,8 @@ public partial record Embed(
     EmbedImage? Thumbnail,
     IReadOnlyList<EmbedImage> Images,
     EmbedVideo? Video,
-    EmbedFooter? Footer)
+    EmbedFooter? Footer
+)
 {
     // Embeds can only have one image according to the API model,
     // but the client can render multiple images in some cases.
@@ -29,6 +30,9 @@ public partial record Embed(
 
     public SpotifyTrackEmbedProjection? TryGetSpotifyTrack() =>
         SpotifyTrackEmbedProjection.TryResolve(this);
+
+    public TwitchClipEmbedProjection? TryGetTwitchClip() =>
+        TwitchClipEmbedProjection.TryResolve(this);
 
     public YouTubeVideoEmbedProjection? TryGetYouTubeVideo() =>
         YouTubeVideoEmbedProjection.TryResolve(this);
@@ -41,24 +45,25 @@ public partial record Embed
         var title = json.GetPropertyOrNull("title")?.GetStringOrNull();
 
         var kind =
-            json.GetPropertyOrNull("type")?.GetStringOrNull()?.ParseEnumOrNull<EmbedKind>() ??
-            EmbedKind.Rich;
+            json.GetPropertyOrNull("type")?.GetStringOrNull()?.ParseEnumOrNull<EmbedKind>()
+            ?? EmbedKind.Rich;
 
         var url = json.GetPropertyOrNull("url")?.GetNonWhiteSpaceStringOrNull();
-        var timestamp = json.GetPropertyOrNull("timestamp")?.GetDateTimeOffset();
+        var timestamp = json.GetPropertyOrNull("timestamp")?.GetDateTimeOffsetOrNull();
 
-        var color = json
-            .GetPropertyOrNull("color")?
-            .GetInt32OrNull()?
-            .Pipe(System.Drawing.Color.FromArgb)
+        var color = json.GetPropertyOrNull("color")
+            ?.GetInt32OrNull()
+            ?.Pipe(System.Drawing.Color.FromArgb)
             .ResetAlpha();
 
         var author = json.GetPropertyOrNull("author")?.Pipe(EmbedAuthor.Parse);
         var description = json.GetPropertyOrNull("description")?.GetStringOrNull();
 
         var fields =
-            json.GetPropertyOrNull("fields")?.EnumerateArrayOrNull()?.Select(EmbedField.Parse).ToArray() ??
-            Array.Empty<EmbedField>();
+            json.GetPropertyOrNull("fields")
+                ?.EnumerateArrayOrNull()
+                ?.Select(EmbedField.Parse)
+                .ToArray() ?? [];
 
         var thumbnail = json.GetPropertyOrNull("thumbnail")?.Pipe(EmbedImage.Parse);
 
@@ -70,8 +75,10 @@ public partial record Embed
         // with this by merging related embeds at the end of the message parsing process.
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/695
         var images =
-            json.GetPropertyOrNull("image")?.Pipe(EmbedImage.Parse).Enumerate().ToArray() ??
-            Array.Empty<EmbedImage>();
+            json.GetPropertyOrNull("image")
+                ?.Pipe(EmbedImage.Parse)
+                .ToSingletonEnumerable()
+                .ToArray() ?? [];
 
         var video = json.GetPropertyOrNull("video")?.Pipe(EmbedVideo.Parse);
 

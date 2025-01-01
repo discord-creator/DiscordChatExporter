@@ -15,7 +15,7 @@ namespace DiscordChatExporter.Cli.Tests.Specs;
 public class HtmlGroupingSpecs
 {
     [Fact]
-    public async Task Messages_are_grouped_correctly()
+    public async Task I_can_export_a_channel_and_the_messages_are_grouped_according_to_their_author_and_timestamps()
     {
         // https://github.com/Tyrrrz/DiscordChatExporter/issues/152
 
@@ -26,14 +26,13 @@ public class HtmlGroupingSpecs
         await new ExportChannelsCommand
         {
             Token = Secrets.DiscordToken,
-            ChannelIds = new[] { ChannelIds.GroupingTestCases },
+            ChannelIds = [ChannelIds.GroupingTestCases],
             ExportFormat = ExportFormat.HtmlDark,
-            OutputPath = file.Path
+            OutputPath = file.Path,
         }.ExecuteAsync(new FakeConsole());
 
         // Assert
-        var messageGroups = Html
-            .Parse(await File.ReadAllTextAsync(file.Path))
+        var messageGroups = Html.Parse(await File.ReadAllTextAsync(file.Path))
             .QuerySelectorAll(".chatlog__message-group");
 
         messageGroups.Should().HaveCount(2);
@@ -59,12 +58,6 @@ public class HtmlGroupingSpecs
             .QuerySelectorAll(".chatlog__content")
             .Select(e => e.Text())
             .Should()
-            .ContainInOrder(
-                "Eleventh",
-                "Twelveth",
-                "Thirteenth",
-                "Fourteenth",
-                "Fifteenth"
-            );
+            .ContainInOrder("Eleventh", "Twelveth", "Thirteenth", "Fourteenth", "Fifteenth");
     }
 }
